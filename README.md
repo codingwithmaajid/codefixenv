@@ -1,8 +1,3 @@
 HI Guys 
 
-this is a repo for the openenv-hackathon
-
-
-
-
-# openenv-hackathon
+so this is a repo for the hackathon  openenv by scaler school of technology
