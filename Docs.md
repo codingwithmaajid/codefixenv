@@ -32,13 +32,13 @@
 
 CodeFixEnv is an **agentic RL environment** where an AI agent is given **buggy Python code + a failing test**, and must fix the code so the test passes.
 
-This is a real-world task — it's exactly what tools like GitHub Copilot and Cursor do. It's measurable, gradeable, and has a natural reward signal (did the test pass?).
+This is a real-world task — Its how agentic Coding Tools Work. It's measurable, gradeable, and has a natural reward signal (did the test pass?).
 
 **Why this is a strong submission:**
 - Clearly real-world (not a game or toy)
 - Reward is objective and automatable
 - 3 tasks with clear difficulty progression
-- Partial reward signals (judges love this)
+- Partial reward signals (I Hope the judges love this)
 
 ---
 
