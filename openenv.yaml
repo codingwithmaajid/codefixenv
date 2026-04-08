@@ -1,0 +1,49 @@
+name: codefixenv
+version: 1.0.0
+description: >
+  OpenEnv environment for automated code debugging using an AI agent.
+  The agent receives buggy Python code and must fix it to pass test cases.
+
+entrypoint: python inference.py
+
+env:
+  framework: fastapi
+  port: 8000
+
+tasks:
+  - name: easy
+    description: Fix simple syntax or small logical errors
+  - name: medium
+    description: Fix logical bugs in functions
+  - name: hard
+    description: Fix multi-step bugs and handle edge cases
+
+action_space:
+  type: object
+  properties:
+    fixed_code:
+      type: string
+      description: The corrected Python code submitted by the agent
+
+observation_space:
+  type: object
+  properties:
+    buggy_code:
+      type: string
+    test_case:
+      type: string
+    error_message:
+      type: string
+
+reward:
+  type: float
+  range: [0.0, 1.0]
+  description: >
+    Reward based on correctness:
+    0.0 = code fails to run,
+    0.5 = runs but fails tests,
+    1.0 = all tests pass
+
+metadata:
+  author: Abdul Maajid
+  difficulty: easy-medium-hard
