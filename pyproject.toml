@@ -2,4 +2,14 @@
 name = "openenv-hackathon"
 version = "0.1.0"
 requires-python = ">=3.14"
-dependencies = []
+dependencies = [
+    "openenv-core>=0.2.0",
+    "fastapi",
+    "uvicorn",
+    "pydantic",
+    "requests",
+    "openai"
+]
+
+[project.scripts]
+server = "server.app:main"
