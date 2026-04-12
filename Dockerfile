@@ -10,7 +10,7 @@ COPY . .
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Expose port for FastAPI
+# Expose port for FastAPI / Hf spaces
 EXPOSE 7860
 
 # Start server + inference (simple version)
