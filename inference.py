@@ -1,15 +1,13 @@
 import os
-import json
 import requests
 from openai import OpenAI
 
 # Config
 API_BASE_URL = os.environ.get("API_BASE_URL", "https://api.groq.com/openai/v1")
-MODEL_NAME   = os.environ.get("MODEL_NAME", "llama-3.3-70b-versatile")
-
-# FIX: The evaluator injects "API_KEY", not "HF_TOKEN"
-API_KEY      = os.environ.get("API_KEY", "dummy-key")
-SPACE_URL    = os.environ.get("SPACE_URL", "http://localhost:7860")
+MODEL_NAME = os.environ.get("MODEL_NAME", "llama-3.3-70b-versatile")
+API_KEY = os.environ.get("API_KEY", "dummy-key")
+SPACE_URL = os.environ.get("SPACE_URL", "http://localhost:7860")
+BENCHMARK = "codefixenv"
 
 client = OpenAI(
     base_url=API_BASE_URL,
@@ -24,16 +22,7 @@ Just the raw corrected Python code that will make the test pass."""
 def call_llm(buggy_code: str, test_cases: str, error_message: str | None) -> str:
     """Ask the LLM to fix the code, protected by try/except."""
     error_context = f"\nLast error:\n{error_message}" if error_message else ""
-
-    user_prompt = f"""Fix this Python code so the following tests pass.
-
-Buggy code:
-{buggy_code}
-
-Tests that must pass:
-{test_cases}{error_context}
-
-Return ONLY the fixed function code. No explanation. No markdown."""
+    user_prompt = f"Fix this Python code so the following tests pass.\n\nBuggy code:\n{buggy_code}\n\nTests that must pass:\n{test_cases}{error_context}\n\nReturn ONLY the fixed function code. No explanation. No markdown."
 
     try:
         response = client.chat.completions.create(
@@ -44,42 +33,41 @@ Return ONLY the fixed function code. No explanation. No markdown."""
             ],
             max_tokens=512,
             temperature=0.1,
-            timeout=20.0  # Added timeout so it doesn't hang the evaluator
+            timeout=20.0
         )
         return response.choices[0].message.content.strip()
-    except Exception as e:
-        # Prevent full crash if LLM API is blocked/down
-        print(json.dumps({"type": "[LOG]", "message": f"LLM Call Failed: {str(e)}"}))
-        return buggy_code  # Return original code to fail this step gracefully
+    except Exception:
+        # Prevent crash if LLM API fails, just return original code
+        return buggy_code
 
 
-def run_task(task_id: int) -> dict:
-    """Run one full task episode with safety limits."""
-    step_num = 0
+def run_task(task_id: int):
+    """Run one full task episode."""
+    task_names = ["", "easy", "medium", "hard"]
+    task_name = task_names[task_id]
+
+    # Text-based START log with flush=True
+    print(f"[START] task={task_name} env={BENCHMARK} model={MODEL_NAME}", flush=True)
+
+    step_count = 0
+    rewards = []
+    score = 0.0
+
     try:
         # Reset environment for this task
         reset_resp = requests.post(f"{SPACE_URL}/reset", params={"task_id": task_id}, timeout=10.0)
         reset_resp.raise_for_status()
         obs = reset_resp.json()
 
-        print(json.dumps({
-            "type": "[START]",
-            "task_id": task_id,
-            "difficulty": ["", "easy", "medium", "hard"][task_id],
-            "buggy_code": obs["buggy_code"]
-        }))
-
-        reward = 0.0
         done = False
 
-        # Added step limit (5) to ensure it breaks out correctly
-        while not done and step_num < 5:
-            step_num += 1
+        while not done and step_count < 5:
+            step_count += 1
 
             # LLM generates fixed code
             fixed_code = call_llm(
-                buggy_code=obs["buggy_code"],
-                test_cases=obs["test_cases"],
+                buggy_code=obs.get("buggy_code", ""),
+                test_cases=obs.get("test_cases", ""),
                 error_message=obs.get("error_message")
             )
 
@@ -93,56 +81,28 @@ def run_task(task_id: int) -> dict:
             result = step_resp.json()
 
             obs = result["observation"]
-            reward = result["reward"]
+            reward = float(result["reward"])
             done = result["done"]
+            rewards.append(reward)
 
-            print(json.dumps({
-                "type": "[STEP]",
-                "task_id": task_id,
-                "step": step_num,
-                "reward": reward,
-                "done": done,
-                "error": obs.get("error_message"),
-                "fixed_code_preview": fixed_code[:100]
-            }))
+            # Text-based STEP log with flush=True.
+            # Note: Deliberately omitted 'action=code' to prevent newlines from breaking the parsing
+            print(f"[STEP] step={step_count} reward={reward:.2f} done={str(done).lower()}", flush=True)
 
-        print(json.dumps({
-            "type": "[END]",
-            "task_id": task_id,
-            "final_reward": reward,
-            "total_steps": step_num,
-            "solved": reward == 1.0
-        }))
+        score = rewards[-1] if rewards else 0.0
 
-        return {"task_id": task_id, "reward": reward, "steps": step_num}
+        # Text-based END log with flush=True
+        print(f"[END] task={task_name} score={score:.2f} steps={step_count}", flush=True)
 
     except Exception as e:
-        # If anything else fails, print the END tag so the grader parser doesn't break
-        print(json.dumps({
-            "type": "[END]",
-            "task_id": task_id,
-            "final_reward": 0.0,
-            "total_steps": step_num,
-            "solved": False,
-            "error": str(e)
-        }))
-        return {"task_id": task_id, "reward": 0.0, "steps": step_num}
+        # Text-based fallback error log
+        print(f"[END] task={task_name} score=0.00 steps={step_count} error=\"{str(e)}\"", flush=True)
 
 
 def main():
-    print(json.dumps({"type": "[START]", "event": "inference_run_begin", "model": MODEL_NAME}))
-
-    results = []
+    # Loop through Easy, Medium, Hard
     for task_id in [1, 2, 3]:
-        result = run_task(task_id)
-        results.append(result)
-
-    print(json.dumps({
-        "type": "[END]",
-        "event": "inference_run_complete",
-        "results": results,
-        "average_reward": sum(r["reward"] for r in results) / len(results)
-    }))
+        run_task(task_id)
 
 
 if __name__ == "__main__":
