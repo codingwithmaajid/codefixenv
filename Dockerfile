@@ -14,4 +14,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 EXPOSE 8000
 
 # Start server + inference (simple version)
-CMD ["sh", "-c", "uvicorn server.server:app --host 0.0.0.0 --port 8000 & python inference.py"]
+CMD ["uvicorn", "server.server:app", "--host", "0.0.0.0", "--port", "7860"]
+
