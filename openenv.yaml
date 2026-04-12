@@ -8,7 +8,7 @@ entrypoint: python inference.py
 
 env:
   framework: fastapi
-  port: 8000
+  port: 7860
 
 tasks:
   - name: easy

@@ -3,7 +3,8 @@ import requests
 from openai import OpenAI
 
 # REQUIRED ENV VARIABLES
-API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
+# REQUIRED ENV VARIABLES
+API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:7860")
 MODEL_NAME = os.getenv("MODEL_NAME", "dummy-model")
 HF_TOKEN = os.getenv("HF_TOKEN", "dummy-key")
 
