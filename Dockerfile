@@ -10,6 +10,9 @@ COPY . .
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
+# the path to be used
+ENV PYTHONPATH=/app
+
 # Expose port for FastAPI / Hf spaces
 EXPOSE 7860
 
