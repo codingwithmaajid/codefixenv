@@ -5,13 +5,15 @@ from openai import OpenAI
 
 # Config
 API_BASE_URL = os.environ.get("API_BASE_URL", "https://api.groq.com/openai/v1")
-MODEL_NAME = os.environ.get("MODEL_NAME", "llama-3.3-70b-versatile")
-HF_TOKEN = os.environ.get("HF_TOKEN", "dummy-key")
-SPACE_URL = os.environ.get("SPACE_URL", "http://localhost:7860")
+MODEL_NAME   = os.environ.get("MODEL_NAME", "llama-3.3-70b-versatile")
+
+# FIX: The evaluator injects "API_KEY", not "HF_TOKEN"
+API_KEY      = os.environ.get("API_KEY", "dummy-key")
+SPACE_URL    = os.environ.get("SPACE_URL", "http://localhost:7860")
 
 client = OpenAI(
     base_url=API_BASE_URL,
-    api_key=HF_TOKEN if HF_TOKEN else "dummy-key"
+    api_key=API_KEY
 )
 
 SYSTEM_PROMPT = """You are an expert Python debugger. You will be given buggy Python code and a failing test.
